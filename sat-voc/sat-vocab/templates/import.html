@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Import Words — SAT Vocab{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Import Words</h1>
+  <p>Paste one word per line. Optionally include a definition: <code>word: definition</code><br>
+  If no definition is given, it will be looked up automatically. If lookup fails (no internet), the word is still saved with a placeholder — edit it later in the Words page.</p>
+</div>
+
+{% if result %}
+<div class="import-result">
+  <div class="result-stats-row">
+    <span class="result-stat success">&#10003; {{ result.added }} added</span>
+    <span class="result-stat skip">&#8635; {{ result.skipped }} duplicate</span>
+    <span class="result-stat fail">&#10007; {{ result.failed|length }} failed</span>
+  </div>
+</div>
+
+{% if result.entries %}
+<div class="import-entries">
+  {% for e in result.entries %}
+  <div class="import-entry outcome-{{ e.outcome }}">
+    <div class="import-entry-header">
+      <span class="import-outcome-icon">
+        {% if e.outcome == 'added' %}&#10003;
+        {% elif e.outcome == 'skipped' %}&#8635;
+        {% else %}&#10007;{% endif %}
+      </span>
+      <span class="import-original">{{ e.original }}</span>
+      {% if e.chain %}
+      <span class="import-chain">
+        {% for step, value in e.chain %}
+          <span class="chain-step">
+            <span class="chain-arrow">&#8594;</span>
+            <span class="chain-label">{{ step }}:</span>
+            <span class="chain-value">{{ value }}</span>
+          </span>
+        {% endfor %}
+      </span>
+      {% endif %}
+    </div>
+    {% if e.outcome == 'failed' %}
+    <div class="import-failed-action">
+      No definition found. Add it manually:
+      <a href="{{ url_for('words.word_list') }}?add={{ e.final_word }}" class="btn btn-sm btn-outline">+ Add "{{ e.final_word }}"</a>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endif %}
+
+<form method="post" class="import-form">
+  <textarea name="words_text" class="words-textarea"
+    placeholder="ephemeral&#10;luminous: giving off light; bright&#10;perfidious&#10;tenacious: holding firmly; persistent"
+    rows="16"></textarea>
+  <button type="submit" class="btn btn-primary">Import Words</button>
+</form>
+{% endblock %}

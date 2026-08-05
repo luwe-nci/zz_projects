@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Study — SAT Vocab{% endblock %}
+{% block content %}
+<div class="session-wrap">
+  <div class="session-meta">
+    <a href="{{ url_for('session.queue_list', mode=mode) }}" class="btn btn-outline btn-sm">&#8592; List</a>
+    <span class="mode-badge mode-{{ mode }}">{{ mode }}</span>
+    <span class="progress-counter">{{ current }} / {{ total }}</span>
+  </div>
+
+  {% if show_word_first %}
+    {% set front_label = "word" %}
+    {% set front_content = word.word %}
+    {% set front_sub = word.pos or '' %}
+    {% set back_label = "definition" %}
+    {% set back_content = word.definition %}
+  {% else %}
+    {% set front_label = "definition" %}
+    {% set front_content = word.definition %}
+    {% set front_sub = word.pos or '' %}
+    {% set back_label = "word" %}
+    {% set back_content = word.word %}
+  {% endif %}
+
+  <div class="card-scene">
+    <div class="card-flipper" id="card-flipper">
+
+      {# FRONT #}
+      <div class="card-face card-front">
+        <div class="card-face-label">{{ front_label }}</div>
+        <div class="card-main-text">{{ front_content }}</div>
+        {% if front_sub %}<div class="card-sub-text">{{ front_sub }}</div>{% endif %}
+        <div class="card-actions-row">
+          <button class="btn-sound-inline" title="Speak"
+                  onclick="speakText(this.dataset.text)" type="button"
+                  data-text="{{ front_content }}">&#128266;</button>
+        </div>
+      </div>
+
+      {# BACK #}
+      <div class="card-face card-back">
+        <div class="card-face-label">{{ back_label }}</div>
+        <div class="card-main-text back-main">{{ back_content }}</div>
+        {% if front_sub %}<div class="card-sub-text">{{ front_sub }}</div>{% endif %}
+        <div class="card-actions-row">
+          <button class="btn-sound-inline" title="Speak"
+                  onclick="speakText(this.dataset.text)" type="button"
+                  data-text="{{ back_content }}">&#128266;</button>
+          <button class="btn-example-toggle btn-refresh-sm" id="example-toggle-btn"
+                  onclick="cycleExample({{ word.id }})" type="button">&#128214; note</button>
+        </div>
+        <div id="card-example-wrap" class="card-example-hidden">
+          <span class="card-example-text" id="card-example-text"></span>
+          <button class="btn-sound-inline" title="Speak example"
+                  id="example-speak-btn"
+                  onclick="speakText(document.getElementById('card-example-text').textContent)"
+                  type="button">&#128266;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Rating + Next — always visible #}
+  <form method="post" action="{{ url_for('session.rate') }}" id="rate-form">
+    <div class="rating-label">How well did you know it?</div>
+    <div class="rating-buttons">
+      <button type="submit" name="rating" value="missed" class="btn btn-missed">Didn't Know</button>
+      <button type="submit" name="rating" value="hard" class="btn btn-hard">Hard</button>
+      <button type="submit" name="rating" value="easy" class="btn btn-easy">Easy</button>
+    </div>
+  </form>
+  <div class="card-nav-row">
+    <span></span>
+    <a href="{{ url_for('session.skip') }}" class="btn btn-outline">Next &#8594;</a>
+  </div>
+
+  {# Full Details panel #}
+  <div class="details-bar">
+    <button class="btn btn-outline" id="details-btn" onclick="loadDetails({{ word.id }})" type="button">
+      Show Full Details
+    </button>
+  </div>
+  <div id="details-panel" class="details-panel" style="display:none;">
+    <div id="details-content" class="details-content">
+      <div class="details-loading">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='card.js') }}"></script>
+<script>initExamples({{ examples_json | safe }});</script>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}{{ word.word }} — SAT Vocab{% endblock %}
+{% block content %}
+<div class="session-wrap">
+
+  <div class="session-meta">
+    <a href="{{ back_url }}" class="btn btn-outline btn-sm">&#8592; Back</a>
+    <span class="status-badge status-{{ word.status or 'new' }}">{{ word.status or 'new' }}</span>
+    {% if current and total %}
+      <span class="progress-counter">{{ current }} / {{ total }}</span>
+    {% endif %}
+  </div>
+
+  <div class="card-scene">
+    <div class="card-flipper" id="card-flipper">
+
+      {# FRONT — word #}
+      <div class="card-face card-front">
+        <div class="card-face-label">word</div>
+        <div class="card-main-text">{{ word.word }}</div>
+        {% if word.pos %}<div class="card-sub-text">{{ word.pos }}</div>{% endif %}
+        <div class="card-actions-row">
+          <button class="btn-sound-inline" title="Speak"
+                  onclick="speakText(this.dataset.text)" type="button"
+                  data-text="{{ word.word }}">&#128266;</button>
+        </div>
+      </div>
+
+      {# BACK — definition #}
+      <div class="card-face card-back">
+        <div class="card-face-label">definition</div>
+        <div class="card-main-text back-main">{{ word.definition }}</div>
+        {% if word.pos %}<div class="card-sub-text">{{ word.pos }}</div>{% endif %}
+        <div class="card-actions-row">
+          <button class="btn-sound-inline" title="Speak"
+                  onclick="speakText(this.dataset.text)" type="button"
+                  data-text="{{ word.definition }}">&#128266;</button>
+          <button class="btn-example-toggle btn-refresh-sm" id="example-toggle-btn"
+                  onclick="cycleExample({{ word.id }})" type="button">&#128214; note</button>
+        </div>
+        <div id="card-example-wrap" class="card-example-hidden">
+          <span class="card-example-text" id="card-example-text"></span>
+          <button class="btn-sound-inline" title="Speak example"
+                  id="example-speak-btn"
+                  onclick="speakText(document.getElementById('card-example-text').textContent)"
+                  type="button">&#128266;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Rating — always visible #}
+  <form method="post" action="{{ url_for('words.rate_word', word_id=word.id) }}" id="rate-form">
+    <input type="hidden" name="back" value="{{ back_url }}">
+    <input type="hidden" name="ids" value="{{ request.args.get('ids', '') }}">
+    <input type="hidden" name="idx" value="{{ request.args.get('idx', 0) }}">
+    <div class="rating-label">How well did you know it?</div>
+    <div class="rating-buttons">
+      <button type="submit" name="rating" value="missed" class="btn btn-missed">Didn't Know</button>
+      <button type="submit" name="rating" value="hard" class="btn btn-hard">Hard</button>
+      <button type="submit" name="rating" value="easy" class="btn btn-easy">Easy</button>
+    </div>
+  </form>
+
+  {# Prev / Next nav #}
+  <div class="card-nav-row">
+    {% if prev_url %}
+      <a href="{{ prev_url }}" class="btn btn-outline">&#8592; Prev</a>
+    {% else %}
+      <span class="btn btn-outline" style="opacity:0.3;cursor:default;">&#8592; Prev</span>
+    {% endif %}
+
+    {% if next_url %}
+      <a href="{{ next_url }}" class="btn btn-primary">Next &#8594;</a>
+    {% elif is_last %}
+      <a href="{{ back_url }}" class="btn btn-primary">Back to List &#8594;</a>
+    {% endif %}
+  </div>
+
+  {# Full Details panel #}
+  <div class="details-bar">
+    <button class="btn btn-outline" id="details-btn" onclick="loadDetails({{ word.id }})" type="button">
+      Show Full Details
+    </button>
+  </div>
+  <div id="details-panel" class="details-panel" style="display:none;">
+    <div id="details-content" class="details-content">
+      <div class="details-loading">Loading…</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='card.js') }}"></script>
+<script>initExamples({{ examples_json | safe }});</script>
+
+{% endblock %}

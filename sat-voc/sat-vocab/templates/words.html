@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Words — SAT Vocab{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Word List <span class="count-badge">{{ total }}</span></h1>
+</div>
+
+<div class="words-toolbar">
+  <form method="get" class="search-form">
+    <input type="search" name="search" value="{{ search }}" placeholder="Search words..." class="search-input">
+    <button type="submit" class="btn btn-outline">Search</button>
+  </form>
+  <button class="btn btn-outline btn-danger-soft" id="reset-btn"
+          onclick="resetSelected()" type="button" style="display:none;">
+    &#8635; Reset Selected
+  </button>
+  <span id="reset-status" style="font-size:0.9rem;color:var(--text-muted);"></span>
+</div>
+
+<details class="add-word-panel" id="add-word-panel">
+  <summary class="btn btn-outline">+ Add Word</summary>
+  <form method="post" action="{{ url_for('words.add_word') }}" class="add-form">
+    <input type="text" name="word" id="add-word-input" placeholder="Word" required class="input-field" value="{{ request.args.get('add', '') }}">
+    <input type="text" name="definition" placeholder="Definition" required class="input-field">
+    <input type="text" name="pos" placeholder="Part of speech (optional)" class="input-field">
+    <input type="text" name="note" placeholder="Note (optional)" class="input-field">
+    <button type="submit" class="btn btn-primary">Add</button>
+  </form>
+</details>
+{% if request.args.get('add') %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const panel = document.getElementById('add-word-panel');
+    panel.open = true;
+    document.getElementById('add-word-input').focus();
+  });
+</script>
+{% endif %}
+
+<table class="words-table">
+    <thead>
+      <tr>
+        <th style="width:36px;text-align:center;">
+          <input type="checkbox" id="select-all" title="Select all" onchange="toggleAll(this)">
+        </th>
+        <th>Word<span class="col-resizer"></span></th>
+        <th><span class="col-toggle-label" onclick="toggleCol('definition')" title="Click to hide/show">Definition &#9660;</span><span class="col-resizer"></span></th>
+        <th><span class="col-toggle-label" onclick="toggleCol('note')" title="Click to hide/show">Note &#9660;</span><span class="col-resizer"></span></th>
+        <th>Status<span class="col-resizer"></span></th>
+        <th>Next Due<span class="col-resizer"></span></th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for w in words %}
+      <tr>
+        <td style="text-align:center;">
+          <input type="checkbox" name="word_ids" value="{{ w.id }}"
+                 class="word-checkbox" onchange="updateResetBtn()">
+        </td>
+        <td class="word-cell"><button class="btn-speak-row" type="button" onclick="speakText('{{ w.word }}')">&#128266;</button> <a href="{{ url_for('words.word_card', word_id=w.id) }}" class="word-link"><strong>{{ w.word }}</strong></a>{% if w.pos %} <em class="pos">{{ w.pos }}</em>{% endif %}</td>
+        <td class="def-cell"><button class="btn-speak-row" type="button" onclick="speakText(this.nextSibling.textContent.trim())">&#128266;</button> {{ w.definition }}</td>
+        <td class="note-cell">{% if w.note and w.note != '—' %}<button class="btn-speak-row" type="button" onclick="speakText(this.nextSibling.textContent.trim())">&#128266;</button> {{ w.note }}{% else %}—{% endif %}</td>
+        <td><span class="status-badge status-{{ w.status or 'new' }}">{{ w.status or 'new' }}</span></td>
+        <td class="due-cell">{{ w.next_due_at[:10] if w.next_due_at else '—' }}</td>
+        <td class="action-cell">
+          <button class="btn btn-sm btn-outline" onclick="toggleEdit({{ w.id }})">Edit</button>
+          <form method="post" action="{{ url_for('words.delete_word', word_id=w.id) }}" style="display:inline"
+                onsubmit="return confirm('Delete {{ w.word }}?')">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      <tr id="edit-row-{{ w.id }}" class="edit-row" style="display:none;">
+        <td colspan="7">
+          <form method="post" action="{{ url_for('words.edit_word', word_id=w.id) }}" class="edit-form">
+            <input type="text" name="definition" value="{{ w.definition }}" class="input-field" placeholder="Definition">
+            <input type="text" name="pos" value="{{ w.pos or '' }}" class="input-field" placeholder="Part of speech">
+            <input type="text" name="note" value="{{ w.note or '' }}" class="input-field" placeholder="Note">
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="toggleEdit({{ w.id }})">Cancel</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="empty-msg">No words found. <a href="{{ url_for('import_words.import_page') }}">Import some!</a></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+{% if pages > 1 %}
+<div class="pagination">
+  {% for p in range(1, pages + 1) %}
+    <a href="?search={{ search }}&page={{ p }}"
+       class="page-link {% if p == page %}active{% endif %}">{{ p }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<script>
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = 0.85;
+  window.speechSynthesis.speak(u);
+}
+
+function toggleEdit(id) {
+  const row = document.getElementById('edit-row-' + id);
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+
+function toggleAll(cb) {
+  document.querySelectorAll('.word-checkbox').forEach(c => c.checked = cb.checked);
+  updateResetBtn();
+}
+
+function updateResetBtn() {
+  const checked = document.querySelectorAll('.word-checkbox:checked').length;
+  const btn = document.getElementById('reset-btn');
+  const all = document.getElementById('select-all');
+  const total = document.querySelectorAll('.word-checkbox').length;
+  btn.style.display = checked > 0 ? '' : 'none';
+  btn.textContent = '↻ Reset Selected (' + checked + ')';
+  all.indeterminate = checked > 0 && checked < total;
+  all.checked = checked === total;
+}
+
+function resetSelected() {
+  const checked = document.querySelectorAll('.word-checkbox:checked');
+  if (!confirm('Reset ' + checked.length + ' word(s) back to new status?')) return;
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.action = '{{ url_for("words.reset_selected") }}';
+  const addHidden = (n, v) => { const i = document.createElement('input'); i.type='hidden'; i.name=n; i.value=v; form.appendChild(i); };
+  addHidden('search', '{{ search }}');
+  addHidden('page', '{{ page }}');
+  checked.forEach(cb => addHidden('word_ids', cb.value));
+  document.body.appendChild(form);
+  form.submit();
+}
+
+// ── Column toggle ─────────────────────────────────────────────────────────
+const _colIndex = { definition: 3, note: 4 };
+const _colHidden = {};
+
+function toggleCol(name) {
+  _colHidden[name] = !_colHidden[name];
+  const idx = _colIndex[name];
+  const hidden = _colHidden[name];
+  const table = document.querySelector('.words-table');
+  table.querySelectorAll(`tr > *:nth-child(${idx})`).forEach(cell => {
+    if (cell.tagName === 'TH') {
+      const label = cell.querySelector('.col-toggle-label');
+      if (label) label.innerHTML = (hidden ? name.charAt(0).toUpperCase() + name.slice(1) + ' &#9658;'
+                                           : name.charAt(0).toUpperCase() + name.slice(1) + ' &#9660;');
+      cell.style.width = hidden ? '32px' : '';
+    } else {
+      cell.style.visibility = hidden ? 'hidden' : '';
+    }
+  });
+}
+
+// ── Column resize ──────────────────────────────────────────────────────────
+(function () {
+  const table = document.querySelector('.words-table');
+  if (!table) return;
+  let dragging = null, startX = 0, startW = 0;
+
+  table.querySelectorAll('th .col-resizer').forEach(handle => {
+    handle.addEventListener('mousedown', e => {
+      dragging = handle.parentElement;
+      startX = e.clientX;
+      startW = dragging.offsetWidth;
+      handle.classList.add('resizing');
+      document.body.style.cursor = 'col-resize';
+      e.preventDefault();
+    });
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    dragging.style.width = Math.max(60, startW + (e.clientX - startX)) + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging.querySelector('.col-resizer').classList.remove('resizing');
+    dragging = null;
+    document.body.style.cursor = '';
+  });
+})();
+</script>
+{% endblock %}

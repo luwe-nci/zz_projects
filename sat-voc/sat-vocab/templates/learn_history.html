@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Learn History — SAT Vocab{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+    <a href="{{ url_for('home.index') }}" class="btn btn-outline btn-sm">&#8592; Home</a>
+    <h1>Learn History</h1>
+    <span class="count-badge">{{ groups|length }} group{{ 's' if groups|length != 1 }}</span>
+  </div>
+</div>
+
+{% if groups %}
+<div class="history-list">
+  {% for item in groups %}
+  {% set g = item.group %}
+  <div class="history-row {% if not g.completed_at %}history-row-active{% endif %}">
+    <a href="{{ url_for('session.group_detail', group_id=g.id, ref='history') }}"
+       class="history-row-link">
+      <span class="history-row-label">{{ item.label }}</span>
+      <span class="history-row-meta">
+        <span class="count-badge">{{ g.word_count }} word{{ 's' if g.word_count != 1 }}</span>
+        {% if not g.completed_at %}
+          <span class="status-badge status-learning">In Progress</span>
+        {% else %}
+          <span class="status-badge status-mastered">Done</span>
+        {% endif %}
+      </span>
+      <span class="history-row-arrow">&#8250;</span>
+    </a>
+    <form method="post"
+          action="{{ url_for('session.reset_group', group_id=g.id) }}"
+          onsubmit="return confirm('Reset group {{ item.label }}? All words will return to new.')">
+      <button type="submit" class="btn-recycle" title="Reset group and return words to new">&#9851;</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-msg" style="padding:3rem;">
+  No learn groups yet. <a href="{{ url_for('session.start') }}">Start a session</a> to create your first group.
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Settings — SAT Vocab{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Settings</h1>
+</div>
+
+<form method="post" class="settings-form">
+  <div class="form-group">
+    <label for="daily_learn_count">New words to learn per day</label>
+    <input type="number" id="daily_learn_count" name="daily_learn_count"
+           value="{{ settings.daily_learn_count }}" min="1" max="100" class="input-field input-num">
+  </div>
+  <div class="form-group">
+    <label for="daily_review_count">Words to review per day</label>
+    <input type="number" id="daily_review_count" name="daily_review_count"
+           value="{{ settings.daily_review_count }}" min="1" max="200" class="input-field input-num">
+  </div>
+  <div class="form-group">
+    <label for="daily_test_count">Words to test per day</label>
+    <input type="number" id="daily_test_count" name="daily_test_count"
+           value="{{ settings.daily_test_count }}" min="1" max="100" class="input-field input-num">
+  </div>
+  <div class="form-group">
+    <label>Flashcard — show first</label>
+    <div class="toggle-group">
+      <label class="toggle-option">
+        <input type="radio" name="show_word_first" value="1"
+               {% if settings.show_word_first != 0 %}checked{% endif %}> Word first
+      </label>
+      <label class="toggle-option">
+        <input type="radio" name="show_word_first" value="0"
+               {% if settings.show_word_first == 0 %}checked{% endif %}> Definition first
+      </label>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary">Save Settings</button>
+</form>
+{% endblock %}

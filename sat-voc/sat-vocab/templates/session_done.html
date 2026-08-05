@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Session Complete — SAT Vocab{% endblock %}
+{% block content %}
+<div class="done-wrap">
+  <div class="done-icon">✓</div>
+  <h1>Session Complete!</h1>
+  <div class="done-summary">
+    <div class="done-stat"><strong>{{ session.learn_done }}</strong> learned</div>
+    <div class="done-stat"><strong>{{ session.review_done }}</strong> reviewed</div>
+    <div class="done-stat"><strong>{{ session.test_done }}</strong> tested</div>
+  </div>
+
+  {% if group_finished and group %}
+  <div class="group-complete-banner">
+    <div class="group-complete-icon">🎉</div>
+    <div class="group-complete-text">
+      <strong>Learn group complete!</strong><br>
+      All {{ group.word_count if group.word_count else '' }} words in this group have been studied.
+    </div>
+    <form method="post" action="{{ url_for('session.next_group') }}" style="margin-top:1rem;">
+      <button type="submit" class="btn btn-success">Start Next Group →</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="done-actions">
+    <a href="{{ url_for('home.index') }}" class="btn btn-primary">Back to Home</a>
+    <a href="{{ url_for('session.learn_history') }}" class="btn btn-outline">Learn History</a>
+    <a href="{{ url_for('stats.stats_page') }}" class="btn btn-outline">View Stats</a>
+  </div>
+</div>
+{% endblock %}

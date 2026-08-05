@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Home — SAT Vocab{% endblock %}
+{% block content %}
+<div class="home-header">
+  <div class="streak">
+    <span class="streak-num">{{ streak }}</span>
+    <span class="streak-label">day streak</span>
+  </div>
+  <h1>Today's Session</h1>
+</div>
+
+<div class="progress-cards">
+  <a href="{{ url_for('session.queue_list', mode='learn') }}" class="progress-card learn">
+    <div class="progress-label">Learn</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" style="width: {{ [session.learn_done / [session.learn_target, 1]|max * 100, 100]|min }}%"></div>
+    </div>
+    <div class="progress-count">{{ session.learn_done }} / {{ session.learn_target }}</div>
+  </a>
+  <a href="{{ url_for('session.queue_list', mode='review') }}" class="progress-card review">
+    <div class="progress-label">Review</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" style="width: {{ [session.review_done / [session.review_target, 1]|max * 100, 100]|min }}%"></div>
+    </div>
+    <div class="progress-count">{{ session.review_done }} / {{ session.review_target }}</div>
+  </a>
+  <a href="{{ url_for('session.queue_list', mode='test') }}" class="progress-card test">
+    <div class="progress-label">Test</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" style="width: {{ [session.test_done / [session.test_target, 1]|max * 100, 100]|min }}%"></div>
+    </div>
+    <div class="progress-count">{{ session.test_done }} / {{ session.test_target }}</div>
+  </a>
+</div>
+
+<div class="home-actions">
+  <a href="{{ url_for('session.start') }}" class="btn btn-primary btn-lg">Start Today's Session</a>
+</div>
+
+<div class="word-summary">
+  <h2>Word Bank</h2>
+  <div class="summary-grid">
+    <div class="summary-item"><span class="num">{{ total_words }}</span><span>Total</span></div>
+    <div class="summary-item new"><span class="num">{{ status_counts.get('new', 0) }}</span><span>New</span></div>
+    <div class="summary-item learning"><span class="num">{{ status_counts.get('learning', 0) }}</span><span>Learning</span></div>
+    <div class="summary-item review"><span class="num">{{ status_counts.get('review', 0) }}</span><span>Review</span></div>
+    <div class="summary-item mastered"><span class="num">{{ status_counts.get('mastered', 0) }}</span><span>Mastered</span></div>
+  </div>
+</div>
+
+<div class="dict-section">
+  <h2>Dictionary</h2>
+  <div class="dict-input-row">
+    <input type="text" id="dict-input" class="dict-input" placeholder="Look up a word…" autocomplete="off">
+    <button class="btn btn-primary" onclick="dictLookup()">Look Up</button>
+  </div>
+  <div id="dict-result"></div>
+</div>
+
+<script src="{{ url_for('static', filename='card.js') }}"></script>
+<script>
+document.getElementById('dict-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') dictLookup();
+});
+
+function dictLookup() {
+  const word = document.getElementById('dict-input').value.trim();
+  if (!word) return;
+  const result = document.getElementById('dict-result');
+  result.innerHTML = '<div class="dict-loading">Looking up…</div>';
+
+  fetch('/dictionary/lookup', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({word})
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) {
+      result.innerHTML = `<div class="dict-error">${data.error}</div>`;
+      return;
+    }
+    let html = '<div class="dict-card">';
+    html += '<div class="details-word-row">';
+    html += `<span class="details-word">${data.word}</span>`;
+    if (data.phonetic) html += `<span class="details-phonetic">${data.phonetic}</span>`;
+    html += speakerBtn(data.word);
+    html += '</div>';
+
+    data.meanings.forEach(m => {
+      html += `<div class="details-meaning"><div class="details-pos">${m.pos}</div>`;
+      m.definitions.forEach((d, i) => {
+        html += `<div class="details-def-block">
+          <div class="details-def-row">
+            <span class="details-def-num">${i + 1}.</span>
+            <span class="details-def-text">${d.definition}</span>
+            ${speakerBtn(d.definition)}
+          </div>`;
+        if (d.example) html += `<div class="details-example-row">
+          <span class="details-example-text">"${d.example}"</span>
+          ${speakerBtn(d.example)}
+        </div>`;
+        html += '</div>';
+      });
+      if (m.synonyms && m.synonyms.length) {
+        html += `<div class="details-syn-ant"><span class="details-syn-label">Synonyms:</span><span class="details-chips">`;
+        m.synonyms.forEach(s => { html += `<span class="chip chip-syn">${s} ${speakerBtn(s)}</span>`; });
+        html += '</span></div>';
+      }
+      if (m.antonyms && m.antonyms.length) {
+        html += `<div class="details-syn-ant"><span class="details-ant-label">Antonyms:</span><span class="details-chips">`;
+        m.antonyms.forEach(a => { html += `<span class="chip chip-ant">${a} ${speakerBtn(a)}</span>`; });
+        html += '</span></div>';
+      }
+      html += '</div>';
+    });
+
+    if (data.already_added) {
+      html += '<div class="dict-add-row"><span class="dict-already-added">✓ Already in your word bank</span></div>';
+    } else {
+      html += `<div class="dict-add-row">
+        <button class="btn btn-primary" onclick="dictAdd('${data.word}', this)">+ Add to Learn</button>
+      </div>`;
+    }
+    html += '</div>';
+    result.innerHTML = html;
+  })
+  .catch(() => {
+    result.innerHTML = '<div class="dict-error">Network error — check connection.</div>';
+  });
+}
+
+function dictAdd(word, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Adding…';
+  fetch('/dictionary/add', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({word})
+  })
+  .then(r => r.json())
+  .then(data => {
+    const row = btn.closest('.dict-add-row');
+    if (data.outcome === 'added') {
+      row.innerHTML = `<span class="dict-added-ok">✓ Added "${data.final_word}" to your word bank</span>`;
+    } else if (data.outcome === 'skipped') {
+      row.innerHTML = `<span class="dict-already-added">✓ Already in your word bank</span>`;
+    } else {
+      row.innerHTML = `<span class="dict-error">Could not add — no definition found.</span>`;
+    }
+  })
+  .catch(() => { btn.disabled = false; btn.textContent = '+ Add to Learn'; });
+}
+</script>
+{% endblock %}

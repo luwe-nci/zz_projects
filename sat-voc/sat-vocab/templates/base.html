@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SAT Vocab{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav>
+    <a href="{{ url_for('home.index') }}" class="nav-brand">SAT Vocab</a>
+    <div class="nav-links">
+      <a href="{{ url_for('home.index') }}">Home</a>
+      <a href="{{ url_for('session.start') }}">Study</a>
+      <a href="{{ url_for('import_words.import_page') }}">Import</a>
+      <a href="{{ url_for('words.word_list') }}">Words</a>
+      <a href="{{ url_for('session.learn_history') }}">History</a>
+      <a href="{{ url_for('stats.stats_page') }}">Stats</a>
+      <a href="{{ url_for('settings.settings_page') }}">Settings</a>
+    </div>
+  </nav>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

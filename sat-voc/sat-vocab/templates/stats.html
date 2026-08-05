@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Stats — SAT Vocab{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Progress</h1>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-num">{{ total_words }}</div>
+    <div class="stat-label">Total Words</div>
+  </div>
+  <div class="stat-card mastered">
+    <div class="stat-num">{{ status_counts.get('mastered', 0) }}</div>
+    <div class="stat-label">Mastered</div>
+  </div>
+  <div class="stat-card review">
+    <div class="stat-num">{{ status_counts.get('review', 0) }}</div>
+    <div class="stat-label">In Review</div>
+  </div>
+  <div class="stat-card learning">
+    <div class="stat-num">{{ status_counts.get('learning', 0) }}</div>
+    <div class="stat-label">Learning</div>
+  </div>
+  <div class="stat-card new">
+    <div class="stat-num">{{ unstarted + status_counts.get('new', 0) }}</div>
+    <div class="stat-label">Not Started</div>
+  </div>
+  <div class="stat-card pct">
+    <div class="stat-num">{{ mastery_pct }}%</div>
+    <div class="stat-label">Mastery Rate</div>
+  </div>
+</div>
+
+<h2>Activity (Last 30 Days)</h2>
+{% if daily_counts %}
+<div class="bar-chart">
+  {% set max_val = daily_counts | map(attribute='total') | max %}
+  {% for row in daily_counts | reverse %}
+    {% set pct = (row['total'] / [max_val, 1]|max * 100)|int %}
+    <div class="bar-item">
+      <div class="bar" style="height: {{ pct }}%" title="{{ row['date'] }}: {{ row['total'] }} words"></div>
+      <div class="bar-label">{{ row['date'][5:] }}</div>
+    </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty-msg">No session data yet. Start studying!</p>
+{% endif %}
+{% endblock %}

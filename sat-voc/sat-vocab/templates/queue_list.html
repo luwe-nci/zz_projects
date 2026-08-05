@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}
+  {% if group_label %}{{ group_label }}{% else %}{{ mode|capitalize }} Queue{% endif %} — SAT Vocab
+{% endblock %}
+{% block content %}
+{# Build nav params for word card links #}
+{% if group is defined %}
+  {% set back_param = 'group:' ~ group.id %}
+{% else %}
+  {% set back_param = 'words' %}
+{% endif %}
+{% set ids_param = words | map(attribute='word') | map(attribute='id') | join(',') %}
+
+<div class="page-header">
+  <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+    {% if ref == 'history' %}
+      <a href="{{ url_for('session.learn_history') }}" class="btn btn-outline btn-sm">&#8592; History</a>
+    {% else %}
+      <a href="{{ url_for('home.index') }}" class="btn btn-outline btn-sm">&#8592; Home</a>
+    {% endif %}
+    <h1>
+      {% if group_label is defined %}
+        <span class="mode-badge mode-learn">learn</span>
+        {{ group_label }}
+        {% if is_active is defined and is_active %}
+          <span class="status-badge status-learning" style="margin-left:0.5rem;font-size:0.8rem;">In Progress</span>
+        {% elif group is defined and group.completed_at %}
+          <span class="status-badge status-mastered" style="margin-left:0.5rem;font-size:0.8rem;">Done</span>
+        {% endif %}
+      {% else %}
+        <span class="mode-badge mode-{{ mode }}">{{ mode }}</span>
+        Today's Queue
+      {% endif %}
+    </h1>
+    <span class="count-badge" id="done-badge">{{ done_count }}/{{ target }} done</span>
+  </div>
+
+  {% if words|length < target and not (group is defined) %}
+  <p class="queue-short-note">
+    {% if mode == 'learn' %}
+      Only {{ words|length }} new words available — import more words to reach your daily target of {{ target }}.
+    {% else %}
+      Only {{ words|length }} words due for {{ mode }} — the rest aren't scheduled yet.
+    {% endif %}
+  </p>
+  {% endif %}
+
+  <div style="margin-top:0.75rem; display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+    <a href="{{ url_for('session.start') }}" class="btn btn-primary">Start Session</a>
+    <a href="{{ url_for('session.done') }}" class="btn btn-outline" id="completed-btn"
+       style="{{ '' if done_count == target else 'display:none;' }}">Completed &#10003;</a>
+  </div>
+</div>
+
+{% if words %}
+<table class="words-table">
+  <thead>
+    <tr>
+      <th style="width:36px;"></th>
+      <th>Word<span class="col-resizer"></span></th>
+      <th><span class="col-toggle-label" onclick="toggleCol('definition')" title="Click to hide/show">Definition &#9660;</span><span class="col-resizer"></span></th>
+      <th><span class="col-toggle-label" onclick="toggleCol('note')" title="Click to hide/show">Note &#9660;</span><span class="col-resizer"></span></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in words %}
+    {% set w = item.word %}
+    {% set loop_idx = loop.index0 %}
+    <tr class="{{ 'row-done' if item.done else 'row-remaining' }}" id="row-{{ w.id }}">
+      <td class="status-cell">
+        {% if item.done %}
+          <span class="check-done" title="Done">&#10003;</span>
+        {% else %}
+          <form method="post"
+                action="{{ url_for('session.manual_check', mode=mode, word_id=w.id) }}"
+                style="display:inline;"
+                onsubmit="markDone(event, {{ w.id }}, '{{ mode }}')">
+            <button type="submit" class="check-btn" title="Mark as done">&#9675;</button>
+          </form>
+        {% endif %}
+      </td>
+      <td class="word-cell">
+        <button class="btn-speak-row" type="button" onclick="speakText('{{ w.word }}')">&#128266;</button>
+        <a href="{{ url_for('words.word_card', word_id=w.id, back=back_param, ids=ids_param, idx=loop_idx) }}"
+           class="word-link"><strong>{{ w.word }}</strong></a>
+        {% if w.pos %}<em class="pos">{{ w.pos }}</em>{% endif %}
+      </td>
+      <td class="def-cell">
+        <button class="btn-speak-row" type="button" onclick="speakText(this.nextSibling.textContent.trim())">&#128266;</button>
+        {{ w.definition }}
+      </td>
+      <td class="note-cell">
+        {% if w.note %}
+          <button class="btn-speak-row" type="button" onclick="speakText(this.nextSibling.textContent.trim())">&#128266;</button>
+          {{ w.note }}
+        {% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-msg" style="padding:3rem;">
+  No words queued for {{ mode }} today.
+  {% if mode == 'learn' %}Try importing more words.{% else %}Check back tomorrow!{% endif %}
+</div>
+{% endif %}
+
+<script>
+let _doneCount = {{ done_count }};
+const _target = {{ target }};
+
+function markDone(e, wordId, mode) {
+  e.preventDefault();
+  const row = document.getElementById('row-' + wordId);
+  const cell = row.querySelector('.status-cell');
+
+  // Optimistic UI — swap circle for checkmark immediately
+  cell.innerHTML = '<span class="check-done" title="Done">&#10003;</span>';
+  row.classList.remove('row-remaining');
+  row.classList.add('row-done');
+
+  _doneCount++;
+  document.getElementById('done-badge').textContent = _doneCount + '/' + _target + ' done';
+  if (_doneCount >= _target) {
+    document.getElementById('completed-btn').style.display = '';
+  }
+
+  // Fire the POST in the background
+  fetch(e.target.action, { method: 'POST' }).catch(() => {});
+}
+
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = 0.85;
+  window.speechSynthesis.speak(u);
+}
+
+const _colIndex = { definition: 3, note: 4 };
+const _colHidden = {};
+function toggleCol(name) {
+  _colHidden[name] = !_colHidden[name];
+  const idx = _colIndex[name];
+  const hidden = _colHidden[name];
+  const table = document.querySelector('.words-table');
+  table.querySelectorAll(`tr > *:nth-child(${idx})`).forEach(cell => {
+    if (cell.tagName === 'TH') {
+      const label = cell.querySelector('.col-toggle-label');
+      if (label) label.innerHTML = hidden
+        ? name.charAt(0).toUpperCase() + name.slice(1) + ' &#9658;'
+        : name.charAt(0).toUpperCase() + name.slice(1) + ' &#9660;';
+      cell.style.width = hidden ? '32px' : '';
+    } else {
+      cell.style.visibility = hidden ? 'hidden' : '';
+    }
+  });
+}
+
+(function () {
+  const table = document.querySelector('.words-table');
+  if (!table) return;
+  let dragging = null, startX = 0, startW = 0;
+  table.querySelectorAll('th .col-resizer').forEach(handle => {
+    handle.addEventListener('mousedown', e => {
+      dragging = handle.parentElement;
+      startX = e.clientX; startW = dragging.offsetWidth;
+      handle.classList.add('resizing');
+      document.body.style.cursor = 'col-resize';
+      e.preventDefault();
+    });
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    dragging.style.width = Math.max(60, startW + (e.clientX - startX)) + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging.querySelector('.col-resizer').classList.remove('resizing');
+    dragging = null; document.body.style.cursor = '';
+  });
+})();
+</script>
+{% endblock %}
