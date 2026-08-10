@@ -24,7 +24,7 @@
     </div>
     <div class="progress-count">{{ session.review_done }} / {{ session.review_target }}</div>
   </a>
-  <a href="{{ url_for('session.queue_list', mode='test') }}" class="progress-card test">
+  <a href="{{ url_for('quiz.config') }}" class="progress-card test">
     <div class="progress-label">Test</div>
     <div class="progress-bar-wrap">
       <div class="progress-bar" style="width: {{ [session.test_done / [session.test_target, 1]|max * 100, 100]|min }}%"></div>

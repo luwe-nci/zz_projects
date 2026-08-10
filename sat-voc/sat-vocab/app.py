@@ -7,6 +7,7 @@ from routes.import_words import bp as import_bp
 from routes.words import bp as words_bp
 from routes.settings import bp as settings_bp
 from routes.stats import bp as stats_bp
+from routes.quiz import bp as quiz_bp
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -17,6 +18,7 @@ app.register_blueprint(import_bp)
 app.register_blueprint(words_bp)
 app.register_blueprint(settings_bp)
 app.register_blueprint(stats_bp)
+app.register_blueprint(quiz_bp)
 
 if __name__ == '__main__':
     init_db()

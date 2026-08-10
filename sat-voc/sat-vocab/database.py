@@ -78,6 +78,16 @@ def init_db():
         );
     """)
 
+    # Migrate: add columns that may not exist in older DBs
+    for col_sql in [
+        "ALTER TABLE settings ADD COLUMN show_word_first INTEGER DEFAULT 1",
+        "ALTER TABLE settings ADD COLUMN test_size INTEGER DEFAULT 10",
+    ]:
+        try:
+            c.execute(col_sql)
+        except Exception:
+            pass
+
     # Ensure default settings row exists
     c.execute("INSERT OR IGNORE INTO settings (id) VALUES (1)")
     conn.commit()

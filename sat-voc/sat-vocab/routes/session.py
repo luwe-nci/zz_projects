@@ -22,13 +22,11 @@ def build_queue():
 
     learn_remaining = max(0, today['learn_target'] - today['learn_done'])
     review_remaining = max(0, today['review_target'] - today['review_done'])
-    test_remaining = max(0, today['test_target'] - today['test_done'])
 
     learn_ids = [{'id': i, 'mode': 'learn'} for i in get_due_words('learn', learn_remaining)]
     review_ids = [{'id': i, 'mode': 'review'} for i in get_due_words('review', review_remaining)]
-    test_ids = [{'id': i, 'mode': 'test'} for i in get_due_words('review', test_remaining)]
 
-    return learn_ids + review_ids + test_ids
+    return learn_ids + review_ids
 
 
 @bp.route('/session/start')

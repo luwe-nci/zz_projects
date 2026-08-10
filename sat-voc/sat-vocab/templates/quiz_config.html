@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Quiz Setup — SAT Vocab{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Quiz Setup</h1>
+  <p>Choose your word source, question types, and how many questions to answer.</p>
+</div>
+
+<form method="post" class="quiz-config-form">
+
+  <!-- Source -->
+  <div class="config-section">
+    <h2>Word Source</h2>
+    <div class="source-options">
+      <label class="source-option" id="opt-groups">
+        <input type="radio" name="source" value="groups" checked onchange="toggleGroups(this)">
+        <span class="source-option-body">
+          <strong>History Groups</strong>
+          <span class="source-desc">Words from your learn groups</span>
+        </span>
+      </label>
+      <label class="source-option" id="opt-all">
+        <input type="radio" name="source" value="all" onchange="toggleGroups(this)">
+        <span class="source-option-body">
+          <strong>All Words</strong>
+          <span class="source-desc">Every word in your word bank</span>
+        </span>
+      </label>
+    </div>
+
+    <div id="group-picker" class="group-picker">
+      <div class="group-picker-header">
+        <span class="group-picker-label">Pick groups (leave all unchecked to use every group)</span>
+        <div class="group-picker-actions">
+          <button type="button" class="btn btn-outline btn-sm" onclick="selectAllGroups(true)">All</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="selectAllGroups(false)">None</button>
+        </div>
+      </div>
+      <div class="group-checkboxes" id="group-checkboxes">
+        {% if groups %}
+          {% for item in groups %}
+          <label class="group-check-item">
+            <input type="checkbox" name="group_ids" value="{{ item.group.id }}">
+            <span class="group-check-label">{{ item.label }}</span>
+            <span class="count-badge">{{ item.group.word_count }} word{{ 's' if item.group.word_count != 1 }}</span>
+            {% if not item.group.completed_at %}
+              <span class="status-badge status-learning" style="font-size:0.7rem;">active</span>
+            {% endif %}
+          </label>
+          {% endfor %}
+        {% else %}
+          <p class="empty-msg" style="padding:0.5rem 0;">No learn groups yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Question types -->
+  <div class="config-section">
+    <h2>Question Types</h2>
+    <div class="type-checkboxes">
+      {% for t in all_types %}
+      <label class="type-check-item">
+        <input type="checkbox" name="test_types" value="{{ t }}" checked>
+        <span class="type-check-label">{{ type_labels[t] }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Count -->
+  <div class="config-section">
+    <h2>Number of Questions</h2>
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <input type="number" name="size" id="size-input"
+             value="{{ default_size }}" min="1" max="200"
+             class="input-field input-num">
+      <span style="color:var(--text-muted); font-size:0.9rem;">questions</span>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem;">
+    <button type="submit" class="btn btn-primary btn-lg">Start Quiz</button>
+    <a href="{{ url_for('home.index') }}" class="btn btn-outline" style="margin-left:0.75rem;">Cancel</a>
+  </div>
+</form>
+
+<script>
+function toggleGroups(radio) {
+  document.getElementById('group-picker').style.display =
+    radio.value === 'groups' ? '' : 'none';
+}
+
+function selectAllGroups(checked) {
+  document.querySelectorAll('#group-checkboxes input[type=checkbox]')
+    .forEach(cb => cb.checked = checked);
+}
+</script>
+{% endblock %}

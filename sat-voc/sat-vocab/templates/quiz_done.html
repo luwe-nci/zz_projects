@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Quiz Complete — SAT Vocab{% endblock %}
+{% block content %}
+<div class="done-wrap">
+  <div class="done-icon">{{ '🎉' if pct >= 80 else ('👍' if pct >= 50 else '📚') }}</div>
+  <h1>Quiz Complete!</h1>
+
+  <div class="quiz-score-ring {% if pct >= 80 %}ring-great{% elif pct >= 50 %}ring-ok{% else %}ring-low{% endif %}">
+    <div class="score-pct">{{ pct }}%</div>
+    <div class="score-label">correct</div>
+  </div>
+
+  <div class="done-summary">
+    <div class="done-stat"><strong>{{ score.correct }}</strong> correct</div>
+    <div class="done-stat"><strong>{{ score.incorrect }}</strong> incorrect</div>
+    <div class="done-stat"><strong>{{ total }}</strong> total</div>
+  </div>
+
+  {% if type_rows %}
+  <div class="type-breakdown">
+    <h3>Breakdown by Question Type</h3>
+    <div class="type-breakdown-grid">
+      {% for row in type_rows %}
+      <div class="type-breakdown-card">
+        <div class="type-breakdown-label">{{ row.label }}</div>
+        <div class="type-breakdown-bar-wrap">
+          <div class="type-breakdown-bar" style="width:{{ row.pct }}%"></div>
+        </div>
+        <div class="type-breakdown-stats">
+          <span class="tbs-pct">{{ row.pct }}%</span>
+          <span class="tbs-counts">{{ row.correct }} / {{ row.total }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="quiz-encouragement">
+    {% if pct >= 90 %}
+      Excellent! You've mastered these words.
+    {% elif pct >= 70 %}
+      Good job! Keep reviewing to strengthen retention.
+    {% elif pct >= 50 %}
+      Decent effort. Try reviewing the words you missed.
+    {% else %}
+      Don't worry — learning takes repetition. Keep at it!
+    {% endif %}
+  </div>
+
+  <div class="done-actions">
+    <a href="{{ url_for('quiz.config') }}" class="btn btn-primary">Quiz Again</a>
+    <a href="{{ url_for('home.index') }}" class="btn btn-outline">Back to Home</a>
+    <a href="{{ url_for('session.start') }}" class="btn btn-outline">Study Cards</a>
+  </div>
+</div>
+{% endblock %}

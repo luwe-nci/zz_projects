@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Quiz — SAT Vocab{% endblock %}
+{% block content %}
+<div class="session-wrap">
+  <div class="session-meta">
+    <a href="{{ url_for('home.index') }}" class="btn btn-outline btn-sm">&#8592; Home</a>
+    <span class="mode-badge mode-test">test</span>
+    <span class="progress-counter">{{ current }} / {{ total }}</span>
+  </div>
+
+  <div class="quiz-card" id="quiz-card">
+    <div class="quiz-instruction">{{ question.instruction }}</div>
+    <div class="quiz-prompt">{{ question.prompt }}</div>
+    {% if question.prompt_sub %}
+      <div class="quiz-prompt-sub">{{ question.prompt_sub }}</div>
+    {% endif %}
+
+    <div class="quiz-choices" id="quiz-choices">
+      {% for choice in question.choices %}
+      <button class="quiz-choice-btn" type="button"
+              data-choice-id="{{ choice.id }}"
+              data-correct="{{ '1' if choice.correct else '0' }}"
+              onclick="selectAnswer(this)">
+        <span class="choice-letter">{{ ['A','B','C','D','E','F'][loop.index0] }}</span>
+        <span class="choice-text">{{ choice.text }}</span>
+      </button>
+      {% endfor %}
+    </div>
+
+    <div class="quiz-feedback" id="quiz-feedback" style="display:none;">
+      <div class="feedback-icon" id="feedback-icon"></div>
+      <div class="feedback-text" id="feedback-text"></div>
+    </div>
+
+    <div class="quiz-next-row" id="quiz-next-row" style="display:none;">
+      <form method="post" action="{{ url_for('quiz.answer') }}" id="quiz-form">
+        <input type="hidden" name="choice_id" id="choice-id-input" value="">
+        <input type="hidden" name="is_correct" id="is-correct-input" value="">
+        <button type="submit" class="btn btn-primary btn-lg">Next &rarr;</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='quiz.js') }}"></script>
+{% endblock %}
